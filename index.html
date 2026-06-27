@@ -1,415 +1,411 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <meta name="theme-color" content="#6c5ce7"/>
-  <meta name="mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
-  <meta name="apple-mobile-web-app-title" content="TraduTout"/>
-  <meta name="description" content="Traduisez instantanément textes, fichiers et conversations"/>
-  <link rel="manifest" href="manifest.json"/>
-  <title>TraduTout</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-  <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Inter',sans-serif;background:#f5f6fa;color:#1a1a2e;min-height:100vh}
-    .app{min-height:100vh;display:flex;flex-direction:column}
-    .header{background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);border-bottom:1px solid #e4e4f0;padding:0 16px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 8px rgba(0,0,0,0.06)}
-    .logo{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;background:linear-gradient(135deg,#6c5ce7 0%,#a78bfa 50%,#0ea5e9 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.5px}
-    .logo span{font-weight:300;opacity:0.7}
-    .nav{display:flex;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-    .nav::-webkit-scrollbar{display:none}
-    .nav-btn{background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;color:#7070a0;transition:all 0.15s;white-space:nowrap;display:flex;align-items:center;gap:4px}
-    .nav-btn:hover,.nav-btn:active{color:#3a3a6a;background:#f0f0f8}
-    .nav-btn.active{color:#6c5ce7;background:rgba(108,92,231,0.1)}
-    .main{flex:1;padding:16px 12px;max-width:900px;margin:0 auto;width:100%}
-    .panel{background:#fff;border:1px solid #e4e4f0;border-radius:16px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.06)}
-    .lang-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid #f0f0f8;background:#fafafa}
-    .lang-select{background:#fff;border:1px solid #ddd;border-radius:10px;color:#1a1a2e;font-size:13px;font-weight:500;padding:7px 10px;cursor:pointer;flex:1;transition:border-color 0.15s}
-    .lang-select:focus{outline:none;border-color:#6c5ce7}
-    .lang-select option{background:#fff;color:#1a1a2e}
-    .swap-btn{background:rgba(108,92,231,0.1);border:1px solid rgba(108,92,231,0.2);border-radius:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;transition:all 0.15s;flex-shrink:0}
-    .swap-btn:active{background:rgba(108,92,231,0.25);transform:rotate(180deg)}
-    .text-row{display:flex;flex-direction:column}
-    .text-col{display:flex;flex-direction:column}
-    .text-col:first-child{border-bottom:1px solid #f0f0f8}
-    .col-label{padding:8px 14px 4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#9090b0}
-    textarea{background:transparent;border:none;outline:none;resize:none;color:#1a1a2e;font-size:15px;line-height:1.6;font-family:'Inter',sans-serif;padding:6px 14px 14px;min-height:140px;width:100%}
-    textarea::placeholder{color:#c0c0d8}
-    .output-area{padding:6px 14px 14px;min-height:140px;font-size:15px;line-height:1.6;color:#3a3a6a;white-space:pre-wrap;word-break:break-word}
-    .output-area.loading{color:#a0a0c0;font-style:italic;animation:pulse 1.2s infinite}
-    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-    .actions-bar{padding:10px 14px;border-top:1px solid #f0f0f8;display:flex;align-items:center;gap:8px;background:#fafafa;flex-wrap:wrap}
-    .btn-primary{background:linear-gradient(135deg,#6c5ce7,#a78bfa);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:600;padding:10px 18px;cursor:pointer;transition:opacity 0.15s,transform 0.1s;box-shadow:0 2px 8px rgba(108,92,231,0.3)}
-    .btn-primary:active:not(:disabled){opacity:0.85;transform:scale(0.98)}
-    .btn-primary:disabled{opacity:0.4;cursor:not-allowed;box-shadow:none}
-    .btn-ghost{background:#f0f0f8;border:1px solid #e0e0ee;border-radius:8px;color:#6060a0;font-size:13px;padding:8px 12px;cursor:pointer;transition:all 0.15s}
-    .btn-ghost:active{color:#1a1a2e;background:#e8e8f5}
-    .char-count{margin-left:auto;font-size:11px;color:#a0a0c0}
-
-    /* File upload */
-    .upload-zone{border:2px dashed rgba(108,92,231,0.3);border-radius:12px;margin:14px;padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:rgba(108,92,231,0.03)}
-    .upload-zone.drag{border-color:#6c5ce7;background:rgba(108,92,231,0.08)}
-    .upload-icon{font-size:32px;margin-bottom:10px}
-    .upload-label{font-size:15px;font-weight:500;color:#3a3a6a;margin-bottom:4px}
-    .upload-sub{font-size:12px;color:#9090b0}
-    .file-preview{margin:14px;background:#f8f8fc;border:1px solid #e8e8f5;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px}
-    .file-name{font-size:13px;font-weight:500;flex:1;color:#3a3a6a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .file-remove{background:none;border:none;color:#b0b0c8;cursor:pointer;font-size:20px;line-height:1}
-    .result-box{margin:0 14px 14px;background:rgba(108,92,231,0.04);border:1px solid rgba(108,92,231,0.15);border-radius:10px;padding:14px;font-size:13px;line-height:1.7;color:#3a3a6a;white-space:pre-wrap;max-height:280px;overflow-y:auto}
-    .result-box .section-title{font-weight:600;color:#6c5ce7;margin-bottom:6px;font-size:11px;text-transform:uppercase;letter-spacing:0.06em}
-
-    /* Conversation */
-    .conv-controls{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid #f0f0f8;flex-wrap:wrap}
-    .messages{padding:14px;display:flex;flex-direction:column;gap:10px;min-height:260px;max-height:360px;overflow-y:auto}
-    .message{max-width:80%;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.5}
-    .message.left{align-self:flex-start;background:#f0f0f8;border-bottom-left-radius:4px}
-    .message.right{align-self:flex-end;background:rgba(108,92,231,0.12);border-bottom-right-radius:4px}
-    .msg-orig{color:#1a1a2e}
-    .msg-trans{color:#7070a0;font-style:italic;font-size:11px;margin-top:4px;border-top:1px solid rgba(0,0,0,0.06);padding-top:4px}
-    .msg-lang{font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:#a0a0c0;margin-bottom:2px}
-    .conv-input-row{display:flex;gap:8px;padding:10px 14px;border-top:1px solid #f0f0f8;align-items:flex-end}
-    .conv-input-row textarea{min-height:auto;height:40px;max-height:100px;border:1px solid #ddd;border-radius:10px;background:#fafafa;padding:9px 12px;font-size:14px;resize:none;color:#1a1a2e}
-
-    /* History */
-    .history-item{padding:12px 16px;border-bottom:1px solid #f0f0f8}
-    .history-meta{display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap}
-    .history-langs{font-size:11px;font-weight:600;color:#6c5ce7}
-    .history-type{font-size:10px;background:#f0f0f8;border-radius:4px;padding:1px 6px;color:#9090b0}
-    .history-date{font-size:10px;color:#b0b0c8;margin-left:auto}
-    .history-preview{font-size:12px;color:#8080a0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .empty-state{text-align:center;padding:50px 20px;color:#b0b0c8}
-    .empty-icon{font-size:36px;margin-bottom:10px}
-
-    /* Toast */
-    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid rgba(108,92,231,0.3);color:#3a3a6a;font-size:13px;font-weight:500;padding:10px 20px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);animation:slideUp 0.2s ease;z-index:999}
-    @keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-
-    /* Info banner */
-    .info-banner{margin:0 14px 14px;padding:10px 12px;background:#fff8e6;border:1px solid #fcd34d;border-radius:8px;font-size:12px;color:#92400e;display:flex;gap:8px;align-items:flex-start}
-
-    @media(min-width:640px){
-      .text-row{flex-direction:row}
-      .text-col:first-child{border-bottom:none;border-right:1px solid #f0f0f8;flex:1}
-      .text-col:last-child{flex:1}
-      textarea{min-height:200px}
-      .output-area{min-height:200px}
-    }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="theme-color" content="#6c5ce7"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>TraduTout</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f5f6fa;color:#1a1a2e;min-height:100vh}
+header{background:#fff;border-bottom:1px solid #e4e4f0;padding:0 16px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;box-shadow:0 1px 8px rgba(0,0,0,0.06)}
+.logo{font-size:20px;font-weight:700;color:#6c5ce7}
+nav{display:flex;gap:4px}
+.nav-btn{background:none;border:none;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;color:#7070a0;cursor:pointer}
+.nav-btn.active{color:#6c5ce7;background:rgba(108,92,231,0.1)}
+main{padding:16px 12px;max-width:800px;margin:0 auto}
+.panel{background:#fff;border:1px solid #e4e4f0;border-radius:16px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.06);margin-bottom:16px}
+.lang-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid #f0f0f8;background:#fafafa}
+select{background:#fff;border:1px solid #ddd;border-radius:10px;color:#1a1a2e;font-size:13px;font-weight:500;padding:7px 10px;flex:1}
+.swap-btn{background:rgba(108,92,231,0.1);border:1px solid rgba(108,92,231,0.2);border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:15px}
+.col-label{padding:8px 14px 4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#9090b0}
+textarea{width:100%;border:none;outline:none;resize:none;font-size:15px;line-height:1.6;font-family:inherit;padding:6px 14px 14px;min-height:130px;background:transparent;color:#1a1a2e}
+.output{padding:6px 14px 14px;min-height:130px;font-size:15px;line-height:1.6;color:#3a3a6a;white-space:pre-wrap}
+.sep{border-top:1px solid #f0f0f8}
+.actions{padding:10px 14px;display:flex;align-items:center;gap:8px;background:#fafafa;flex-wrap:wrap}
+.btn{background:linear-gradient(135deg,#6c5ce7,#a78bfa);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:600;padding:10px 18px;cursor:pointer;box-shadow:0 2px 8px rgba(108,92,231,0.3)}
+.btn:disabled{opacity:0.4;cursor:not-allowed}
+.btn-ghost{background:#f0f0f8;border:1px solid #e0e0ee;border-radius:8px;color:#6060a0;font-size:13px;padding:8px 12px;cursor:pointer}
+.char{margin-left:auto;font-size:11px;color:#a0a0c0}
+.tab{display:none}
+.tab.active{display:block}
+.upload-zone{border:2px dashed rgba(108,92,231,0.3);border-radius:12px;margin:14px;padding:32px 20px;text-align:center;cursor:pointer;background:rgba(108,92,231,0.03)}
+.upload-zone:active{border-color:#6c5ce7;background:rgba(108,92,231,0.08)}
+.result-box{margin:0 14px 14px;background:rgba(108,92,231,0.04);border:1px solid rgba(108,92,231,0.15);border-radius:10px;padding:14px;font-size:13px;line-height:1.7;color:#3a3a6a;white-space:pre-wrap;max-height:280px;overflow-y:auto}
+.msg-area{padding:14px;min-height:200px;max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:80%;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.5}
+.msg.left{align-self:flex-start;background:#f0f0f8}
+.msg.right{align-self:flex-end;background:rgba(108,92,231,0.12)}
+.msg-orig{color:#1a1a2e}
+.msg-trans{color:#7070a0;font-style:italic;font-size:11px;margin-top:4px;border-top:1px solid rgba(0,0,0,0.06);padding-top:4px}
+.conv-row{display:flex;gap:8px;padding:10px 14px;border-top:1px solid #f0f0f8;align-items:flex-end}
+.conv-row textarea{min-height:40px;height:40px;border:1px solid #ddd;border-radius:10px;background:#fafafa;padding:9px 12px;font-size:14px}
+.hist-item{padding:12px 16px;border-bottom:1px solid #f0f0f8}
+.hist-meta{display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap}
+.hist-langs{font-size:11px;font-weight:600;color:#6c5ce7}
+.hist-type{font-size:10px;background:#f0f0f8;border-radius:4px;padding:1px 6px;color:#9090b0}
+.hist-date{font-size:10px;color:#b0b0c8;margin-left:auto}
+.hist-prev{font-size:12px;color:#8080a0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.empty{text-align:center;padding:50px 20px;color:#b0b0c8}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid rgba(108,92,231,0.3);color:#3a3a6a;font-size:13px;font-weight:500;padding:10px 20px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:999;display:none}
+</style>
 </head>
 <body>
-<div id="root"></div>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script type="text/babel">
-const { useState, useRef, useEffect } = React;
+<header>
+  <div class="logo">TraduTout</div>
+  <nav>
+    <button class="nav-btn active" onclick="showTab('text')">✍️ Texte</button>
+    <button class="nav-btn" onclick="showTab('file')">📄 Fichier</button>
+    <button class="nav-btn" onclick="showTab('conv')">💬 Conv.</button>
+    <button class="nav-btn" onclick="showTab('history')">🕐 Hist.</button>
+  </nav>
+</header>
+<main>
 
-const LANGUAGES = [
-  {code:"fr",label:"Français",flag:"🇫🇷"},
-  {code:"en",label:"English",flag:"🇬🇧"},
-  {code:"es",label:"Español",flag:"🇪🇸"},
-  {code:"de",label:"Deutsch",flag:"🇩🇪"},
-  {code:"ar",label:"العربية",flag:"🇸🇦"},
-  {code:"pt",label:"Português",flag:"🇵🇹"},
-  {code:"it",label:"Italiano",flag:"🇮🇹"},
-  {code:"nl",label:"Nederlands",flag:"🇳🇱"},
-  {code:"ru",label:"Русский",flag:"🇷🇺"},
-  {code:"zh",label:"中文",flag:"🇨🇳"},
-  {code:"ja",label:"日本語",flag:"🇯🇵"},
-  {code:"ko",label:"한국어",flag:"🇰🇷"},
-  {code:"pl",label:"Polski",flag:"🇵🇱"},
-  {code:"tr",label:"Türkçe",flag:"🇹🇷"},
-  {code:"sv",label:"Svenska",flag:"🇸🇪"},
-];
+<!-- TEXTE -->
+<div id="tab-text" class="tab active">
+  <div class="panel">
+    <div class="lang-bar">
+      <select id="srcLang">
+        <option value="fr">🇫🇷 Français</option>
+        <option value="en">🇬🇧 English</option>
+        <option value="es">🇪🇸 Español</option>
+        <option value="de">🇩🇪 Deutsch</option>
+        <option value="ar">🇸🇦 العربية</option>
+        <option value="pt">🇵🇹 Português</option>
+        <option value="it">🇮🇹 Italiano</option>
+        <option value="nl">🇳🇱 Nederlands</option>
+        <option value="ru">🇷🇺 Русский</option>
+        <option value="zh">🇨🇳 中文</option>
+        <option value="ja">🇯🇵 日本語</option>
+        <option value="ko">🇰🇷 한국어</option>
+        <option value="pl">🇵🇱 Polski</option>
+        <option value="tr">🇹🇷 Türkçe</option>
+        <option value="sv">🇸🇪 Svenska</option>
+      </select>
+      <button class="swap-btn" onclick="swapLangs()">⇄</button>
+      <select id="tgtLang">
+        <option value="en">🇬🇧 English</option>
+        <option value="fr">🇫🇷 Français</option>
+        <option value="es">🇪🇸 Español</option>
+        <option value="de">🇩🇪 Deutsch</option>
+        <option value="ar">🇸🇦 العربية</option>
+        <option value="pt">🇵🇹 Português</option>
+        <option value="it">🇮🇹 Italiano</option>
+        <option value="nl">🇳🇱 Nederlands</option>
+        <option value="ru">🇷🇺 Русский</option>
+        <option value="zh">🇨🇳 中文</option>
+        <option value="ja">🇯🇵 日本語</option>
+        <option value="ko">🇰🇷 한국어</option>
+        <option value="pl">🇵🇱 Polski</option>
+        <option value="tr">🇹🇷 Türkçe</option>
+        <option value="sv">🇸🇪 Svenska</option>
+      </select>
+    </div>
+    <div class="col-label">Texte source</div>
+    <textarea id="inputText" placeholder="Entrez votre texte ici…" oninput="updateChar()"></textarea>
+    <div class="sep"></div>
+    <div class="col-label">Traduction</div>
+    <div id="outputText" class="output" style="color:#c0c0d8">La traduction apparaîtra ici</div>
+    <div class="actions">
+      <button class="btn" id="translateBtn" onclick="translateText()">Traduire →</button>
+      <button class="btn-ghost" id="copyBtn" onclick="copyText()" style="display:none">📋 Copier</button>
+      <button class="btn-ghost" onclick="clearText()">🗑</button>
+      <span class="char" id="charCount">0 car.</span>
+    </div>
+  </div>
+</div>
 
+<!-- FICHIER -->
+<div id="tab-file" class="tab">
+  <div class="panel">
+    <div class="lang-bar">
+      <span style="font-size:12px;color:#9090b0;margin-right:4px">Traduire vers :</span>
+      <select id="fileLang">
+        <option value="en">🇬🇧 English</option>
+        <option value="fr">🇫🇷 Français</option>
+        <option value="es">🇪🇸 Español</option>
+        <option value="de">🇩🇪 Deutsch</option>
+        <option value="ar">🇸🇦 العربية</option>
+      </select>
+    </div>
+    <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+      <div style="font-size:32px;margin-bottom:10px">📎</div>
+      <div style="font-size:15px;font-weight:500;color:#3a3a6a;margin-bottom:4px">Appuyez pour choisir un fichier</div>
+      <div style="font-size:12px;color:#9090b0">JPG · PNG · WEBP · PDF</div>
+      <input id="fileInput" type="file" accept="image/*,.pdf" style="display:none" onchange="handleFile(this.files[0])"/>
+    </div>
+    <div id="filePreview" style="display:none;margin:14px;background:#f8f8fc;border:1px solid #e8e8f5;border-radius:10px;padding:10px 14px;display:none;align-items:center;gap:10px">
+      <span id="fileIcon" style="font-size:20px">📄</span>
+      <span id="fileName" style="font-size:13px;font-weight:500;flex:1;color:#3a3a6a"></span>
+      <button onclick="clearFile()" style="background:none;border:none;color:#b0b0c8;cursor:pointer;font-size:20px">×</button>
+    </div>
+    <div id="fileResult" class="result-box" style="display:none"></div>
+    <div class="actions">
+      <button class="btn" id="fileBtn" onclick="translateFile()" disabled>Traduire le fichier →</button>
+      <button class="btn-ghost" id="fileCopyBtn" onclick="copyFile()" style="display:none">📋 Copier</button>
+    </div>
+  </div>
+</div>
 
+<!-- CONVERSATION -->
+<div id="tab-conv" class="tab">
+  <div class="panel">
+    <div class="lang-bar">
+      <select id="convLangA">
+        <option value="fr">🇫🇷 Français</option>
+        <option value="en">🇬🇧 English</option>
+      </select>
+      <span style="color:#9090b0">⇄</span>
+      <select id="convLangB">
+        <option value="en">🇬🇧 English</option>
+        <option value="fr">🇫🇷 Français</option>
+      </select>
+      <button class="btn-ghost" onclick="clearConv()" style="margin-left:auto">🗑</button>
+    </div>
+    <div id="msgArea" class="msg-area">
+      <div style="text-align:center;color:#c0c0d8;margin-top:20px;font-size:13px">Écrivez ci-dessous — chaque message sera traduit</div>
+    </div>
+    <div style="border-top:1px solid #f0f0f8">
+      <div style="padding:6px 14px 2px;font-size:10px;color:#9090b0;text-transform:uppercase">🇫🇷 Côté A</div>
+      <div class="conv-row">
+        <textarea id="inputA" placeholder="Écrire ici…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg('A')}"></textarea>
+        <button class="btn" onclick="sendMsg('A')" style="padding:10px 14px">→</button>
+      </div>
+      <div style="padding:4px 14px 2px;font-size:10px;color:#9090b0;text-transform:uppercase;border-top:1px solid #f8f8fc">🇬🇧 Côté B</div>
+      <div class="conv-row">
+        <textarea id="inputB" placeholder="Write here…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg('B')}"></textarea>
+        <button class="btn" onclick="sendMsg('B')" style="padding:10px 14px">→</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-const callClaude = async (prompt, system="") => {
-  const r = await fetch("/api/translate",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,system,messages:[{role:"user",content:prompt}]})
+<!-- HISTORIQUE -->
+<div id="tab-history" class="tab">
+  <div class="panel" id="histList">
+    <div class="empty">
+      <div style="font-size:36px;margin-bottom:10px">🕐</div>
+      <div style="font-size:13px">Vos traductions apparaîtront ici</div>
+    </div>
+  </div>
+</div>
+
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const LANGS = {fr:'Français',en:'English',es:'Español',de:'Deutsch',ar:'العربية',pt:'Português',it:'Italiano',nl:'Nederlands',ru:'Русский',zh:'中文',ja:'日本語',ko:'한국어',pl:'Polski',tr:'Türkçe',sv:'Svenska'};
+const FLAGS = {fr:'🇫🇷',en:'🇬🇧',es:'🇪🇸',de:'🇩🇪',ar:'🇸🇦',pt:'🇵🇹',it:'🇮🇹',nl:'🇳🇱',ru:'🇷🇺',zh:'🇨🇳',ja:'🇯🇵',ko:'🇰🇷',pl:'🇵🇱',tr:'🇹🇷',sv:'🇸🇪'};
+let history = [];
+let currentFile = null;
+let fileResultText = '';
+
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function updateChar() {
+  const v = document.getElementById('inputText').value;
+  document.getElementById('charCount').textContent = v.length + ' car.';
+}
+
+function swapLangs() {
+  const s = document.getElementById('srcLang');
+  const t = document.getElementById('tgtLang');
+  const tmp = s.value; s.value = t.value; t.value = tmp;
+  const inp = document.getElementById('inputText');
+  const out = document.getElementById('outputText');
+  const outTxt = out.textContent;
+  if (outTxt && outTxt !== 'La traduction apparaîtra ici') {
+    inp.value = outTxt;
+    out.textContent = inp.value;
+    updateChar();
+  }
+}
+
+async function callProxy(body) {
+  const r = await fetch('/api/translate', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body)
   });
   const d = await r.json();
-  return d.content?.[0]?.text || "";
-};
-
-const callClaudeImg = async (b64, mime, tgt) => {
-  const lang = LANGUAGES.find(l=>l.code===tgt)?.label||tgt;
-  const r = await fetch("/api/translate",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:[
-      {type:"image",source:{type:"base64",media_type:mime,data:b64}},
-      {type:"text",text:`Extrais tout le texte visible dans cette image, puis traduis-le en ${lang}.\n\nRéponds ainsi:\n\nORIGINAL:\n[texte extrait]\n\nTRADUCTION (${lang}):\n[texte traduit]\n\nNe traduis pas les noms propres, codes techniques ou références.`}
-    ]}]})
-  });
-  const d = await r.json();
-  return d.content?.[0]?.text || "";
-};
-
-function App() {
-  const [tab, setTab] = useState("text");
-  const [history, setHistory] = useState([]);
-  const [toast, setToast] = useState(null);
-
-  const showToast = msg => { setToast(msg); setTimeout(()=>setToast(null),2000); };
-  const addToHistory = e => setHistory(p=>[{...e,date:new Date()},...p.slice(0,49)]);
-
-  return (
-    <div className="app">
-      <header className="header">
-        <div className="logo">Tradu<span>Tout</span></div>
-        <nav className="nav">
-          <button className={`nav-btn${tab==="text"?" active":""}`} onClick={()=>setTab("text")}>✍️ Texte</button>
-          <button className={`nav-btn${tab==="file"?" active":""}`} onClick={()=>setTab("file")}>📄 Fichier</button>
-          <button className={`nav-btn${tab==="conv"?" active":""}`} onClick={()=>setTab("conv")}>💬 Conv.</button>
-          <button className={`nav-btn${tab==="history"?" active":""}`} onClick={()=>setTab("history")}>🕐 Historique</button>
-        </nav>
-      </header>
-      <main className="main">
-        {tab==="text" && <TextTab addToHistory={addToHistory} showToast={showToast}/>}
-        {tab==="file" && <FileTab addToHistory={addToHistory} showToast={showToast}/>}
-        {tab==="conv" && <ConvTab addToHistory={addToHistory} showToast={showToast}/>}
-        {tab==="history" && <HistoryTab history={history}/>}
-      </main>
-      {toast && <div className="toast">{toast}</div>}
-    </div>
-  );
+  return d?.content?.[0]?.text || '';
 }
 
-function TextTab({addToHistory,showToast}) {
-  const [srcLang,setSrcLang]=useState("fr");
-  const [tgtLang,setTgtLang]=useState("en");
-  const [input,setInput]=useState("");
-  const [output,setOutput]=useState("");
-  const [loading,setLoading]=useState(false);
-
-  const swap=()=>{setSrcLang(tgtLang);setTgtLang(srcLang);setInput(output);setOutput(input);};
-
-  const translate=async()=>{
-    if(!input.trim())return;
-    setLoading(true);setOutput("");
-    try{
-      const sl=LANGUAGES.find(l=>l.code===srcLang)?.label;
-      const tl=LANGUAGES.find(l=>l.code===tgtLang)?.label;
-      const r=await callClaude(`Traduis ce texte de ${sl} vers ${tl}. Retourne uniquement la traduction, sans commentaire. Ne traduis pas les noms propres, codes techniques ou numéros de référence.\n\n${input}`,"Tu es un traducteur professionnel. Retourne uniquement le texte traduit.");
-      setOutput(r);
-      addToHistory({type:"Texte",src:srcLang,tgt:tgtLang,preview:input.slice(0,80)});
-    } catch{setOutput("❌ Erreur de traduction.");}
-    finally{setLoading(false);}
-  };
-
-  const copy=()=>{if(output){navigator.clipboard.writeText(output);showToast("✅ Copié !");}};
-
-  return (
-    <div className="panel">
-      <div className="lang-bar">
-        <select className="lang-select" value={srcLang} onChange={e=>setSrcLang(e.target.value)}>
-          {LANGUAGES.map(l=><option key={l.code} value={l.code}>{l.flag} {l.label}</option>)}
-        </select>
-        <button className="swap-btn" onClick={swap}>⇄</button>
-        <select className="lang-select" value={tgtLang} onChange={e=>setTgtLang(e.target.value)}>
-          {LANGUAGES.map(l=><option key={l.code} value={l.code}>{l.flag} {l.label}</option>)}
-        </select>
-      </div>
-      <div className="text-row">
-        <div className="text-col">
-          <div className="col-label">Texte source</div>
-          <textarea placeholder="Entrez votre texte ici…" value={input} onChange={e=>setInput(e.target.value)}/>
-        </div>
-        <div className="text-col">
-          <div className="col-label">Traduction</div>
-          <div className={`output-area${loading?" loading":""}`}>
-            {loading?"Traduction en cours…":output||<span style={{color:"#c0c0d8"}}>La traduction apparaîtra ici</span>}
-          </div>
-        </div>
-      </div>
-      <div className="actions-bar">
-        <button className="btn-primary" onClick={translate} disabled={loading||!input.trim()}>
-          {loading?"⏳ Traduction…":"Traduire →"}
-        </button>
-        {output&&<button className="btn-ghost" onClick={copy}>📋 Copier</button>}
-        {input&&<button className="btn-ghost" onClick={()=>{setInput("");setOutput("");}}>🗑</button>}
-        <span className="char-count">{input.length} car.</span>
-      </div>
-    </div>
-  );
+async function translateText() {
+  const inp = document.getElementById('inputText').value.trim();
+  if (!inp) return;
+  const src = LANGS[document.getElementById('srcLang').value];
+  const tgt = LANGS[document.getElementById('tgtLang').value];
+  const tgtCode = document.getElementById('tgtLang').value;
+  const srcCode = document.getElementById('srcLang').value;
+  const btn = document.getElementById('translateBtn');
+  const out = document.getElementById('outputText');
+  btn.disabled = true;
+  btn.textContent = '⏳ Traduction…';
+  out.style.color = '#a0a0c0';
+  out.textContent = 'Traduction en cours…';
+  try {
+    const result = await callProxy({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1000,
+      system: 'Tu es un traducteur professionnel. Retourne uniquement le texte traduit.',
+      messages: [{role: 'user', content: `Traduis de ${src} vers ${tgt}. Retourne uniquement la traduction.\n\n${inp}`}]
+    });
+    out.style.color = '#3a3a6a';
+    out.textContent = result;
+    document.getElementById('copyBtn').style.display = 'inline-block';
+    addHistory('Texte', srcCode, tgtCode, inp.slice(0, 80));
+  } catch(e) {
+    out.style.color = '#ef4444';
+    out.textContent = '❌ Erreur: ' + e.message;
+  }
+  btn.disabled = false;
+  btn.textContent = 'Traduire →';
 }
 
-function FileTab({addToHistory,showToast}) {
-  const [tgtLang,setTgtLang]=useState("en");
-  const [file,setFile]=useState(null);
-  const [result,setResult]=useState("");
-  const [loading,setLoading]=useState(false);
-  const inputRef=useRef();
-
-  const handleFile=f=>{
-    if(!f)return;
-    const ok=["image/jpeg","image/png","image/gif","image/webp","application/pdf"];
-    if(!ok.includes(f.type)){alert("Formats acceptés : JPG, PNG, WEBP, PDF");return;}
-    setFile(f);setResult("");
-  };
-
-  const translate=async()=>{
-    if(!file)return;
-    setLoading(true);setResult("");
-    try{
-      const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
-      const t=await callClaudeImg(b64,file.type,tgtLang);
-      setResult(t);
-      addToHistory({type:"Fichier",src:"auto",tgt:tgtLang,preview:file.name});
-    }catch{setResult("❌ Erreur de traitement.");}
-    finally{setLoading(false);}
-  };
-
-  const copy=()=>{if(result){navigator.clipboard.writeText(result);showToast("✅ Copié !");}};
-
-  return (
-    <div className="panel">
-      <div className="lang-bar">
-        <span style={{fontSize:12,color:"#9090b0",marginRight:4}}>Traduire vers :</span>
-        <select className="lang-select" value={tgtLang} onChange={e=>setTgtLang(e.target.value)}>
-          {LANGUAGES.map(l=><option key={l.code} value={l.code}>{l.flag} {l.label}</option>)}
-        </select>
-      </div>
-      {!file?(
-        <div className="upload-zone" onClick={()=>inputRef.current.click()}>
-          <div className="upload-icon">📎</div>
-          <div className="upload-label">Appuyez pour choisir un fichier</div>
-          <div className="upload-sub">JPG · PNG · WEBP · PDF</div>
-          <input ref={inputRef} type="file" accept="image/*,.pdf" style={{display:"none"}} onChange={e=>handleFile(e.target.files[0])}/>
-        </div>
-      ):(
-        <div className="file-preview">
-          <span style={{fontSize:20}}>{file.type.startsWith("image")?"🖼️":"📄"}</span>
-          <span className="file-name">{file.name}</span>
-          <button className="file-remove" onClick={()=>{setFile(null);setResult("");}}>×</button>
-        </div>
-      )}
-      {result&&(
-        <div className="result-box">
-          {result.split("\n").map((line,i)=>{
-            if(line.startsWith("ORIGINAL:")||line.startsWith("TRADUCTION"))
-              return <div key={i} className="section-title">{line}</div>;
-            return <div key={i}>{line}</div>;
-          })}
-        </div>
-      )}
-      <div className="actions-bar">
-        <button className="btn-primary" onClick={translate} disabled={loading||!file}>
-          {loading?"⏳ Analyse…":"Traduire le fichier →"}
-        </button>
-        {result&&<button className="btn-ghost" onClick={copy}>📋 Copier</button>}
-      </div>
-    </div>
-  );
+function copyText() {
+  navigator.clipboard.writeText(document.getElementById('outputText').textContent);
+  showToast('✅ Copié !');
 }
 
-function ConvTab({addToHistory,showToast}) {
-  const [langA,setLangA]=useState("fr");
-  const [langB,setLangB]=useState("en");
-  const [messages,setMessages]=useState([]);
-  const [inputA,setInputA]=useState("");
-  const [inputB,setInputB]=useState("");
-  const [loadingA,setLoadingA]=useState(false);
-  const [loadingB,setLoadingB]=useState(false);
-  const bottomRef=useRef();
-
-  useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[messages]);
-
-  const send=async side=>{
-    const text=side==="A"?inputA:inputB;
-    const src=side==="A"?langA:langB;
-    const tgt=side==="A"?langB:langA;
-    if(!text.trim())return;
-    if(side==="A"){setInputA("");setLoadingA(true);}else{setInputB("");setLoadingB(true);}
-    const sl=LANGUAGES.find(l=>l.code===src)?.label;
-    const tl=LANGUAGES.find(l=>l.code===tgt)?.label;
-    const msg={id:Date.now(),side,orig:text,trans:"…",src,tgt};
-    setMessages(p=>[...p,msg]);
-    try{
-      const tr=await callClaude(`Traduis de ${sl} vers ${tl}. Retourne uniquement la traduction.\n\n${text}`,"Tu es un traducteur professionnel. Retourne uniquement le texte traduit.");
-      setMessages(p=>p.map(m=>m.id===msg.id?{...m,trans:tr}:m));
-      addToHistory({type:"Conversation",src,tgt,preview:text.slice(0,60)});
-    }catch{setMessages(p=>p.map(m=>m.id===msg.id?{...m,trans:"❌ Erreur"}:m));}
-    finally{if(side==="A")setLoadingA(false);else setLoadingB(false);}
-  };
-
-  const flag=code=>LANGUAGES.find(l=>l.code===code)?.flag||"";
-  const label=code=>LANGUAGES.find(l=>l.code===code)?.label||code;
-
-  return (
-    <div className="panel">
-      <div className="conv-controls">
-        <select className="lang-select" value={langA} onChange={e=>setLangA(e.target.value)}>
-          {LANGUAGES.map(l=><option key={l.code} value={l.code}>{l.flag} {l.label}</option>)}
-        </select>
-        <span style={{color:"#9090b0"}}>⇄</span>
-        <select className="lang-select" value={langB} onChange={e=>setLangB(e.target.value)}>
-          {LANGUAGES.map(l=><option key={l.code} value={l.code}>{l.flag} {l.label}</option>)}
-        </select>
-        {messages.length>0&&<button className="btn-ghost" style={{marginLeft:"auto"}} onClick={()=>setMessages([])}>🗑</button>}
-      </div>
-      <div className="messages">
-        {messages.length===0&&<div style={{textAlign:"center",color:"#c0c0d8",marginTop:30,fontSize:13}}>Écrivez ci-dessous — chaque message sera traduit automatiquement</div>}
-        {messages.map(m=>(
-          <div key={m.id} className={`message ${m.side==="A"?"left":"right"}`}>
-            <div className="msg-lang">{flag(m.src)} {label(m.src)}</div>
-            <div className="msg-orig">{m.orig}</div>
-            <div className="msg-trans">→ {flag(m.tgt)} {m.trans}</div>
-          </div>
-        ))}
-        <div ref={bottomRef}/>
-      </div>
-      <div style={{borderTop:"1px solid #f0f0f8"}}>
-        <div style={{padding:"6px 14px 2px",fontSize:10,color:"#9090b0",textTransform:"uppercase",letterSpacing:"0.06em"}}>{flag(langA)} {label(langA)}</div>
-        <div className="conv-input-row">
-          <textarea value={inputA} onChange={e=>setInputA(e.target.value)} placeholder={`Écrire en ${label(langA)}…`} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send("A");}}}/>
-          <button className="btn-primary" onClick={()=>send("A")} disabled={loadingA||!inputA.trim()}>{loadingA?"⏳":"→"}</button>
-        </div>
-        <div style={{padding:"4px 14px 2px",fontSize:10,color:"#9090b0",textTransform:"uppercase",letterSpacing:"0.06em",borderTop:"1px solid #f8f8fc"}}>{flag(langB)} {label(langB)}</div>
-        <div className="conv-input-row">
-          <textarea value={inputB} onChange={e=>setInputB(e.target.value)} placeholder={`Write in ${label(langB)}…`} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send("B");}}}/>
-          <button className="btn-primary" onClick={()=>send("B")} disabled={loadingB||!inputB.trim()}>{loadingB?"⏳":"→"}</button>
-        </div>
-      </div>
-    </div>
-  );
+function clearText() {
+  document.getElementById('inputText').value = '';
+  document.getElementById('outputText').textContent = 'La traduction apparaîtra ici';
+  document.getElementById('outputText').style.color = '#c0c0d8';
+  document.getElementById('copyBtn').style.display = 'none';
+  updateChar();
 }
 
-function HistoryTab({history}) {
-  const flag=code=>LANGUAGES.find(l=>l.code===code)?.flag||"🌐";
-  const label=code=>code==="auto"?"Auto":(LANGUAGES.find(l=>l.code===code)?.label||code);
-  const fmt=d=>d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+" · "+d.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"});
-
-  return (
-    <div className="panel">
-      {history.length===0?(
-        <div className="empty-state">
-          <div className="empty-icon">🕐</div>
-          <div style={{fontSize:13}}>Vos traductions apparaîtront ici</div>
-        </div>
-      ):(
-        history.map((h,i)=>(
-          <div key={i} className="history-item">
-            <div className="history-meta">
-              <span className="history-langs">{flag(h.src)} {label(h.src)} → {flag(h.tgt)} {label(h.tgt)}</span>
-              <span className="history-type">{h.type}</span>
-              <span className="history-date">{fmt(h.date)}</span>
-            </div>
-            <div className="history-preview">{h.preview}</div>
-          </div>
-        ))
-      )}
-    </div>
-  );
+function handleFile(f) {
+  if (!f) return;
+  currentFile = f;
+  document.getElementById('filePreview').style.display = 'flex';
+  document.getElementById('fileIcon').textContent = f.type.startsWith('image') ? '🖼️' : '📄';
+  document.getElementById('fileName').textContent = f.name;
+  document.getElementById('fileBtn').disabled = false;
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+function clearFile() {
+  currentFile = null;
+  document.getElementById('filePreview').style.display = 'none';
+  document.getElementById('fileResult').style.display = 'none';
+  document.getElementById('fileBtn').disabled = true;
+  document.getElementById('fileCopyBtn').style.display = 'none';
+}
+
+async function translateFile() {
+  if (!currentFile) return;
+  const tgt = LANGS[document.getElementById('fileLang').value];
+  const tgtCode = document.getElementById('fileLang').value;
+  const btn = document.getElementById('fileBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analyse…';
+  try {
+    const b64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(currentFile);
+    });
+    const result = await callProxy({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1000,
+      messages: [{role: 'user', content: [
+        {type: 'image', source: {type: 'base64', media_type: currentFile.type, data: b64}},
+        {type: 'text', text: `Extrais tout le texte visible dans cette image, puis traduis-le en ${tgt}.\n\nRéponds ainsi:\n\nORIGINAL:\n[texte extrait]\n\nTRADUCTION (${tgt}):\n[texte traduit]\n\nNe traduis pas les noms propres, codes techniques ou références.`}
+      ]}]
+    });
+    fileResultText = result;
+    const box = document.getElementById('fileResult');
+    box.textContent = result;
+    box.style.display = 'block';
+    document.getElementById('fileCopyBtn').style.display = 'inline-block';
+    addHistory('Fichier', 'auto', tgtCode, currentFile.name);
+  } catch(e) {
+    document.getElementById('fileResult').textContent = '❌ Erreur: ' + e.message;
+    document.getElementById('fileResult').style.display = 'block';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Traduire le fichier →';
+}
+
+function copyFile() {
+  navigator.clipboard.writeText(fileResultText);
+  showToast('✅ Copié !');
+}
+
+async function sendMsg(side) {
+  const inp = document.getElementById('input' + side);
+  const text = inp.value.trim();
+  if (!text) return;
+  const srcCode = document.getElementById('convLang' + side).value;
+  const tgtCode = document.getElementById('convLang' + (side === 'A' ? 'B' : 'A')).value;
+  const src = LANGS[srcCode];
+  const tgt = LANGS[tgtCode];
+  inp.value = '';
+  const area = document.getElementById('msgArea');
+  const msgEl = document.createElement('div');
+  msgEl.className = 'msg ' + (side === 'A' ? 'left' : 'right');
+  msgEl.innerHTML = `<div style="font-size:9px;text-transform:uppercase;color:#a0a0c0;margin-bottom:2px">${FLAGS[srcCode]} ${src}</div><div class="msg-orig">${text}</div><div class="msg-trans">→ ${FLAGS[tgtCode]} ...</div>`;
+  area.appendChild(msgEl);
+  area.scrollTop = area.scrollHeight;
+  try {
+    const result = await callProxy({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1000,
+      system: 'Tu es un traducteur professionnel. Retourne uniquement le texte traduit.',
+      messages: [{role: 'user', content: `Traduis de ${src} vers ${tgt}. Retourne uniquement la traduction.\n\n${text}`}]
+    });
+    msgEl.querySelector('.msg-trans').textContent = '→ ' + FLAGS[tgtCode] + ' ' + result;
+    addHistory('Conversation', srcCode, tgtCode, text.slice(0, 60));
+  } catch(e) {
+    msgEl.querySelector('.msg-trans').textContent = '❌ Erreur';
+  }
+  area.scrollTop = area.scrollHeight;
+}
+
+function clearConv() {
+  document.getElementById('msgArea').innerHTML = '<div style="text-align:center;color:#c0c0d8;margin-top:20px;font-size:13px">Écrivez ci-dessous — chaque message sera traduit</div>';
+}
+
+function addHistory(type, src, tgt, preview) {
+  history.unshift({type, src, tgt, preview, date: new Date()});
+  if (history.length > 50) history.pop();
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('histList');
+  if (history.length === 0) {
+    list.innerHTML = '<div class="empty"><div style="font-size:36px;margin-bottom:10px">🕐</div><div style="font-size:13px">Vos traductions apparaîtront ici</div></div>';
+    return;
+  }
+  list.innerHTML = history.map(h => `
+    <div class="hist-item">
+      <div class="hist-meta">
+        <span class="hist-langs">${FLAGS[h.src]||'🌐'} ${h.src==='auto'?'Auto':LANGS[h.src]||h.src} → ${FLAGS[h.tgt]||'🌐'} ${LANGS[h.tgt]||h.tgt}</span>
+        <span class="hist-type">${h.type}</span>
+        <span class="hist-date">${h.date.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})} · ${h.date.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})}</span>
+      </div>
+      <div class="hist-prev">${h.preview}</div>
+    </div>
+  `).join('');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2000);
+}
 </script>
 </body>
 </html>
