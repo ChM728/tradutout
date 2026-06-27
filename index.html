@@ -50,6 +50,10 @@ textarea{width:100%;border:none;outline:none;resize:none;font-size:15px;line-hei
 .hist-prev{font-size:12px;color:#8080a0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .empty{text-align:center;padding:50px 20px;color:#b0b0c8}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid rgba(108,92,231,0.3);color:#3a3a6a;font-size:13px;font-weight:500;padding:10px 20px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:999;display:none}
+/* API key banner */
+.api-banner{background:#fff8e1;border:1px solid #ffe082;border-radius:12px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#7a6000;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.api-banner input{flex:1;min-width:180px;border:1px solid #ffe082;border-radius:8px;padding:7px 10px;font-size:13px;background:#fffde7;color:#1a1a2e;outline:none}
+.api-banner button{background:#6c5ce7;border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:600;padding:7px 12px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -63,6 +67,14 @@ textarea{width:100%;border:none;outline:none;resize:none;font-size:15px;line-hei
   </nav>
 </header>
 <main>
+
+<!-- API KEY BANNER -->
+<div class="api-banner" id="apiBanner">
+  🔑 <span>Clé API Anthropic :</span>
+  <input type="password" id="apiKeyInput" placeholder="sk-ant-…" oninput="saveApiKey(this.value)"/>
+  <button onclick="saveApiKey(document.getElementById('apiKeyInput').value)">Enregistrer</button>
+  <span id="apiKeyStatus" style="font-size:11px;color:#9090b0"></span>
+</div>
 
 <!-- TEXTE -->
 <div id="tab-text" class="tab active">
@@ -137,7 +149,7 @@ textarea{width:100%;border:none;outline:none;resize:none;font-size:15px;line-hei
       <div style="font-size:12px;color:#9090b0">JPG · PNG · WEBP · PDF</div>
       <input id="fileInput" type="file" accept="image/*,.pdf" style="display:none" onchange="handleFile(this.files[0])"/>
     </div>
-    <div id="filePreview" style="display:none;margin:14px;background:#f8f8fc;border:1px solid #e8e8f5;border-radius:10px;padding:10px 14px;display:none;align-items:center;gap:10px">
+    <div id="filePreview" style="display:none;margin:14px;background:#f8f8fc;border:1px solid #e8e8f5;border-radius:10px;padding:10px 14px;align-items:center;gap:10px">
       <span id="fileIcon" style="font-size:20px">📄</span>
       <span id="fileName" style="font-size:13px;font-weight:500;flex:1;color:#3a3a6a"></span>
       <button onclick="clearFile()" style="background:none;border:none;color:#b0b0c8;cursor:pointer;font-size:20px">×</button>
@@ -203,6 +215,48 @@ let history = [];
 let currentFile = null;
 let fileResultText = '';
 
+// --- API KEY MANAGEMENT ---
+let apiKey = localStorage.getItem('tradutout_apikey') || '';
+
+function saveApiKey(val) {
+  apiKey = val.trim();
+  localStorage.setItem('tradutout_apikey', apiKey);
+  document.getElementById('apiKeyInput').value = apiKey;
+  document.getElementById('apiKeyStatus').textContent = apiKey ? '✅ Enregistrée' : '';
+}
+
+// Init banner
+window.addEventListener('DOMContentLoaded', () => {
+  if (apiKey) {
+    document.getElementById('apiKeyInput').value = apiKey;
+    document.getElementById('apiKeyStatus').textContent = '✅ Enregistrée';
+  }
+});
+
+// --- CORE API CALL (direct Anthropic API) ---
+async function callClaude(body) {
+  if (!apiKey) {
+    throw new Error('Clé API manquante — entrez votre clé sk-ant-… dans le bandeau en haut.');
+  }
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `Erreur HTTP ${r.status}`);
+  }
+  const d = await r.json();
+  // ✅ CORRECTION : d.content[0].text (pas d.result)
+  return d?.content?.[0]?.text || '';
+}
+
 function showTab(name) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -229,16 +283,6 @@ function swapLangs() {
   }
 }
 
-async function callProxy(body) {
-  const r = await fetch('/api/translate', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(body)
-  });
-  const d = await r.json();
-  return d?.result || '';
-}
-
 async function translateText() {
   const inp = document.getElementById('inputText').value.trim();
   if (!inp) return;
@@ -253,10 +297,10 @@ async function translateText() {
   out.style.color = '#a0a0c0';
   out.textContent = 'Traduction en cours…';
   try {
-    const result = await callProxy({
+    const result = await callClaude({
       model: 'claude-sonnet-4-6',
       max_tokens: 1000,
-      system: 'Tu es un traducteur professionnel. Retourne uniquement le texte traduit.',
+      system: 'Tu es un traducteur professionnel. Retourne uniquement le texte traduit, sans explication ni commentaire.',
       messages: [{role: 'user', content: `Traduis de ${src} vers ${tgt}. Retourne uniquement la traduction.\n\n${inp}`}]
     });
     out.style.color = '#3a3a6a';
@@ -315,12 +359,20 @@ async function translateFile() {
       r.onerror = rej;
       r.readAsDataURL(currentFile);
     });
-    const result = await callProxy({
+
+    // Determine content type for API
+    const mediaType = currentFile.type || 'image/jpeg';
+    const isImage = mediaType.startsWith('image/');
+    const contentBlock = isImage
+      ? {type: 'image', source: {type: 'base64', media_type: mediaType, data: b64}}
+      : {type: 'document', source: {type: 'base64', media_type: 'application/pdf', data: b64}};
+
+    const result = await callClaude({
       model: 'claude-sonnet-4-6',
-      max_tokens: 1000,
+      max_tokens: 2000,
       messages: [{role: 'user', content: [
-        {type: 'image', source: {type: 'base64', media_type: currentFile.type, data: b64}},
-        {type: 'text', text: `Extrais tout le texte visible dans cette image, puis traduis-le en ${tgt}.\n\nRéponds ainsi:\n\nORIGINAL:\n[texte extrait]\n\nTRADUCTION (${tgt}):\n[texte traduit]\n\nNe traduis pas les noms propres, codes techniques ou références.`}
+        contentBlock,
+        {type: 'text', text: `Extrais tout le texte visible dans ce fichier, puis traduis-le en ${tgt}.\n\nRéponds ainsi:\n\nORIGINAL:\n[texte extrait]\n\nTRADUCTION (${tgt}):\n[texte traduit]\n\nNe traduis pas les noms propres, codes techniques ou références.`}
       ]}]
     });
     fileResultText = result;
@@ -358,16 +410,16 @@ async function sendMsg(side) {
   area.appendChild(msgEl);
   area.scrollTop = area.scrollHeight;
   try {
-    const result = await callProxy({
+    const result = await callClaude({
       model: 'claude-sonnet-4-6',
       max_tokens: 1000,
-      system: 'Tu es un traducteur professionnel. Retourne uniquement le texte traduit.',
+      system: 'Tu es un traducteur professionnel. Retourne uniquement le texte traduit, sans explication ni commentaire.',
       messages: [{role: 'user', content: `Traduis de ${src} vers ${tgt}. Retourne uniquement la traduction.\n\n${text}`}]
     });
     msgEl.querySelector('.msg-trans').textContent = '→ ' + FLAGS[tgtCode] + ' ' + result;
     addHistory('Conversation', srcCode, tgtCode, text.slice(0, 60));
   } catch(e) {
-    msgEl.querySelector('.msg-trans').textContent = '❌ Erreur';
+    msgEl.querySelector('.msg-trans').textContent = '❌ ' + e.message;
   }
   area.scrollTop = area.scrollHeight;
 }
