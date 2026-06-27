@@ -236,7 +236,7 @@ async function callProxy(body) {
     body: JSON.stringify(body)
   });
   const d = await r.json();
-  return d?.content?.[0]?.text || '';
+  return d?.result || '';
 }
 
 async function translateText() {
